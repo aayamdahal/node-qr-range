@@ -6,6 +6,7 @@
   "dependencies": {
     "exceljs": "^4.4.0",
     "fs": "^0.0.1-security",
+    "pdfkit": "^0.13.0",
     "qrcode": "^1.5.3",
     "xlsx": "^0.18.5"
   }

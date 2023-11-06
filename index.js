@@ -1,61 +1,103 @@
-const qr = require('qrcode');
-const fs = require('fs/promises');
+const QRCode = require('qrcode');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
 const XLSX = require('xlsx');
 
-// Function to create a directory if it doesn't exist
-async function createDirectoryIfNotExists(directory) {
-  try {
-    await fs.mkdir(directory, { recursive: true });
-  } catch (error) {
-    console.error(`Error creating directory "${directory}":`, error);
-  }
+// Function to generate QR codes with a label
+async function generateQRCodeWithLabel(
+  fileNo,
+  startAccount,
+  endAccount,
+  totalAccounts
+) {
+  const qrData = `Account Range:\n${generateAccountRange(
+    startAccount,
+    endAccount
+  )}`;
+  const qrCode = await QRCode.toDataURL(qrData, { errorCorrectionLevel: 'H' });
+  return { fileNo, qrCode, totalAccounts };
 }
 
-// Function to generate a QR code image
-async function generateQRCode(data, filename) {
-  try {
-    const qrCodeImage = await qr.toDataURL(data);
-    await fs.writeFile(filename, qrCodeImage.split(',')[1], 'base64');
-    console.log(`QR code generated for ${filename}`);
-  } catch (error) {
-    console.error(`Error generating QR code for ${filename}:`, error);
-  }
-}
+async function generatePDFWithQRCodesAndLabels(data) {
+  const pdf = new PDFDocument({
+    size: 'letter',
+    margin: 50,
+    layout: 'landscape',
+  });
 
-// Function to generate a range of account numbers
-function generateAccountRange(start, end) {
-  const accountNumbers = [];
-  for (let account = start; account <= end; account++) {
-    accountNumbers.push(account);
-  }
-  return accountNumbers.join('\n');
-}
+  const output = fs.createWriteStream('qr_codes.pdf');
 
-// Function to process Excel data and generate QR codes
-async function processExcelData(filePath) {
-  try {
-    const workbook = XLSX.readFile(filePath);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const excelData = XLSX.utils.sheet_to_json(worksheet);
+  pdf.pipe(output);
 
-    for (const row of excelData) {
-      const startAccountNumber = row.startAccountNumber;
-      const endAccountNumber = row.endAccountNumber;
-      const accountRange = generateAccountRange(
-        startAccountNumber,
-        endAccountNumber
-      );
-      const qrData = `Account Range:\n${accountRange}`;
-      const filename = `qr/qr_${startAccountNumber}_${endAccountNumber}.png`;
-
-      await createDirectoryIfNotExists('qr');
-      await generateQRCode(qrData, filename);
+  for (let i = 0; i < data.length; i++) {
+    if (i > 0) {
+      pdf.addPage();
     }
-  } catch (error) {
-    console.error('Error processing Excel data:', error);
+
+    const qrCodeWidth = 200; // Width of the QR code image
+    const qrCodeHeight = 200; // Height of the QR code image
+
+    // Calculate the center position for the text and QR code
+    const textX = (pdf.page.width - qrCodeWidth) / 2;
+    const textY = (pdf.page.height - qrCodeHeight) / 2;
+
+    pdf.text(
+      `FILE NO: ${data[i].fileNo} | Total Accounts: ${data[i].totalAccounts}`,
+      textX,
+      textY - 20
+    );
+    pdf.image(data[i].qrCode, textX, textY, {
+      width: qrCodeWidth,
+      height: qrCodeHeight,
+    });
   }
+
+  pdf.end();
+
+  console.log('PDF with QR codes and labels generated.');
 }
 
-// Run the processing function
-processExcelData('account_ranges.xlsx');
+// Function to generate a string containing all account numbers within a range
+function generateAccountRange(start, end) {
+  let accountRange = '';
+  for (let account = start; account <= end; account++) {
+    accountRange += account.toString().padStart(14, '0') + '\n';
+  }
+  return accountRange;
+}
+
+// Read the Excel file
+const workbook = XLSX.readFile('account_ranges.xlsx');
+const sheetName = workbook.SheetNames[0];
+const worksheet = workbook.Sheets[sheetName];
+
+// Parse the Excel data
+const excelData = XLSX.utils.sheet_to_json(worksheet);
+
+const qrCodePromises = [];
+
+// Process each row in the Excel data and calculate the total accounts
+for (const row of excelData) {
+  const fileNo = row['FILE NO'];
+  const startAccountNumber = row.START;
+  const endAccountNumber = row.END;
+
+  const totalAccounts = endAccountNumber - startAccountNumber + 1;
+
+  qrCodePromises.push(
+    generateQRCodeWithLabel(
+      fileNo,
+      startAccountNumber,
+      endAccountNumber,
+      totalAccounts
+    )
+  );
+}
+
+Promise.all(qrCodePromises)
+  .then((qrCodesWithLabels) => {
+    generatePDFWithQRCodesAndLabels(qrCodesWithLabels);
+  })
+  .catch((error) => {
+    console.error('Error generating QR codes and PDF:', error);
+  });
