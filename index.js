@@ -1,63 +1,94 @@
+// Import necessary libraries
 const QRCode = require('qrcode');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const XLSX = require('xlsx');
 
-// Function to generate QR codes with a label
+/**
+ * Generate a QR code with a label.
+ *
+ * @param {string} fileNo - The file number.
+ * @param {number} startAccount - The start account number.
+ * @param {number} endAccount - The end account number.
+ * @param {number} totalAccounts - The total number of accounts in the range.
+ * @returns {Promise<object>} An object containing the file number, QR code, and total accounts.
+ */
 async function generateQRCodeWithLabel(
   fileNo,
   startAccount,
   endAccount,
   totalAccounts
 ) {
+  // Create the data for the QR code, including an account range message
   const qrData = `Account Range:\n${generateAccountRange(
     startAccount,
     endAccount
   )}`;
+
+  // Generate the QR code and return it as a Data URL
   const qrCode = await QRCode.toDataURL(qrData, { errorCorrectionLevel: 'H' });
+
   return { fileNo, qrCode, totalAccounts };
 }
 
+/**
+ * Generate a PDF containing QR codes with labels.
+ *
+ * @param {object[]} data - An array of objects, each containing file number, QR code, and total accounts.
+ */
 async function generatePDFWithQRCodesAndLabels(data) {
+  // Create a new PDF document
   const pdf = new PDFDocument({
     size: 'letter',
     margin: 50,
     layout: 'landscape',
   });
 
+  // Create an output stream for the PDF
   const output = fs.createWriteStream('qr_codes.pdf');
 
+  // Pipe the PDF document to the output stream
   pdf.pipe(output);
 
+  // Loop through the data and add QR codes with labels to the PDF
   for (let i = 0; i < data.length; i++) {
     if (i > 0) {
-      pdf.addPage();
+      pdf.addPage(); // Add a new page for each QR code
     }
 
-    const qrCodeWidth = 200; // Width of the QR code image
-    const qrCodeHeight = 200; // Height of the QR code image
+    const qrCodeWidth = 200;
+    const qrCodeHeight = 200;
 
-    // Calculate the center position for the text and QR code
     const textX = (pdf.page.width - qrCodeWidth) / 2;
     const textY = (pdf.page.height - qrCodeHeight) / 2;
 
+    // Add a label with file number and total accounts above the QR code
     pdf.text(
       `FILE NO: ${data[i].fileNo} | Total Accounts: ${data[i].totalAccounts}`,
       textX,
       textY - 20
     );
+
+    // Add the QR code image to the PDF
     pdf.image(data[i].qrCode, textX, textY, {
       width: qrCodeWidth,
       height: qrCodeHeight,
     });
   }
 
+  // End the PDF creation
   pdf.end();
 
   console.log('PDF with QR codes and labels generated.');
 }
 
-// Function to generate a string containing all account numbers within a range
+/**
+ * Generate an account range message.
+ *
+ * @param {number} start - The start account number.
+ * @param {number} end - The end account number.
+ * @returns {string} The account range message.
+ */
 function generateAccountRange(start, end) {
   let accountRange = '';
   for (let account = start; account <= end; account++) {
@@ -66,17 +97,18 @@ function generateAccountRange(start, end) {
   return accountRange;
 }
 
-// Read the Excel file
+// Read data from an Excel file
 const workbook = XLSX.readFile('account_ranges.xlsx');
 const sheetName = workbook.SheetNames[0];
 const worksheet = workbook.Sheets[sheetName];
 
-// Parse the Excel data
+// Convert the Excel data to JSON
 const excelData = XLSX.utils.sheet_to_json(worksheet);
 
+// Create an array of promises to generate QR codes with labels
 const qrCodePromises = [];
 
-// Process each row in the Excel data and calculate the total accounts
+// Iterate through the Excel data and generate QR codes with labels
 for (const row of excelData) {
   const fileNo = row['FILE NO'];
   const startAccountNumber = row.START;
@@ -94,6 +126,7 @@ for (const row of excelData) {
   );
 }
 
+// Wait for all QR codes to be generated, then generate the PDF
 Promise.all(qrCodePromises)
   .then((qrCodesWithLabels) => {
     generatePDFWithQRCodesAndLabels(qrCodesWithLabels);
