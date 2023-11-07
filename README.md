@@ -37,7 +37,7 @@ const directoryPath = './'; // Update this to your directory path no need to upd
 node index.js
 ```
 
-## Script Details
+## Function Details
 
 1. `generateQRCodeWithLabel`: Generates a QR code with a label that includes an account range message.
 
