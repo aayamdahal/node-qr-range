@@ -1,8 +1,8 @@
-// Import necessary libraries
 const QRCode = require('qrcode');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const XLSX = require('xlsx');
+const path = require('path');
 
 /**
  * Generate a QR code with a label.
@@ -97,40 +97,61 @@ function generateAccountRange(start, end) {
   return accountRange;
 }
 
-// Read data from an Excel file
-const workbook = XLSX.readFile('account_ranges.xlsx');
-const sheetName = workbook.SheetNames[0];
-const worksheet = workbook.Sheets[sheetName];
-
-// Convert the Excel data to JSON
-const excelData = XLSX.utils.sheet_to_json(worksheet);
-
-// Create an array of promises to generate QR codes with labels
-const qrCodePromises = [];
-
-// Iterate through the Excel data and generate QR codes with labels
-for (const row of excelData) {
-  const fileNo = row['FILE NO'];
-  const startAccountNumber = row.START;
-  const endAccountNumber = row.END;
-
-  const totalAccounts = endAccountNumber - startAccountNumber + 1;
-
-  qrCodePromises.push(
-    generateQRCodeWithLabel(
-      fileNo,
-      startAccountNumber,
-      endAccountNumber,
-      totalAccounts
-    )
-  );
+// Function to find the Excel file in the directory
+function findExcelFileInDirectory(directoryPath) {
+  const files = fs.readdirSync(directoryPath);
+  for (const file of files) {
+    if (file.endsWith('.xlsx')) {
+      return path.join(directoryPath, file);
+    }
+  }
+  return null; // Return null if no Excel file is found
 }
 
-// Wait for all QR codes to be generated, then generate the PDF
-Promise.all(qrCodePromises)
-  .then((qrCodesWithLabels) => {
-    generatePDFWithQRCodesAndLabels(qrCodesWithLabels);
-  })
-  .catch((error) => {
-    console.error('Error generating QR codes and PDF:', error);
-  });
+// Specify the directory where the Excel file is located
+const directoryPath = './'; // You can change this to the desired directory
+
+// Find the Excel file in the directory
+const excelFilePath = findExcelFileInDirectory(directoryPath);
+
+if (excelFilePath) {
+  // Read data from the Excel file
+  const workbook = XLSX.readFile(excelFilePath);
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+
+  // Convert the Excel data to JSON
+  const excelData = XLSX.utils.sheet_to_json(worksheet);
+
+  // Create an array of promises to generate QR codes with labels
+  const qrCodePromises = [];
+
+  // Iterate through the Excel data and generate QR codes with labels
+  for (const row of excelData) {
+    const fileNo = row['FILE NO'];
+    const startAccountNumber = row.START;
+    const endAccountNumber = row.END;
+
+    const totalAccounts = endAccountNumber - startAccountNumber + 1;
+
+    qrCodePromises.push(
+      generateQRCodeWithLabel(
+        fileNo,
+        startAccountNumber,
+        endAccountNumber,
+        totalAccounts
+      )
+    );
+  }
+
+  // Wait for all QR codes to be generated, then generate the PDF
+  Promise.all(qrCodePromises)
+    .then((qrCodesWithLabels) => {
+      generatePDFWithQRCodesAndLabels(qrCodesWithLabels);
+    })
+    .catch((error) => {
+      console.error('Error generating QR codes and PDF:', error);
+    });
+} else {
+  console.error('No Excel file found in the directory.');
+}
