@@ -16,7 +16,10 @@ Before using this script, ensure you have the following installed:
 2. Navigate to the repository's directory using the command line.
 
 3. Install the required dependencies by running the following command:
-4. npm install
+
+```bash
+npm install
+```
 
 ## Usage
 
