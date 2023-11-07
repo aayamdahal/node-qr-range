@@ -1,6 +1,6 @@
 # QR Code Generator and PDF Generator
 
-This repository contains a Node.js script that generates QR codes with labels and compiles them into a PDF document. It is designed to work with Excel files containing data to create QR codes and labels for each data entry. Right now the labels are Total Accounts in the start and end range and and File No of that particular account range.
+A Node.js script that generates QR codes with labels and compiles them into a PDF document. It is designed to work with Excel files containing data to create QR codes and labels for each data entry. Right now the labels are Total Accounts in the start and end range and and File No of that particular account range.
 
 ## Prerequisites
 
