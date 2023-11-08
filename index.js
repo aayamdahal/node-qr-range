@@ -64,7 +64,7 @@ async function generatePDFWithQRCodesAndLabels(data) {
 
     // Add a label with file number and total accounts above the QR code
     pdf.text(
-      `FILE NO: ${data[i].fileNo} | Total Accounts: ${data[i].totalAccounts}`,
+      `File No: ${data[i].fileNo} | Total Accounts: ${data[i].totalAccounts}`,
       textX,
       textY - 20
     );
