@@ -56,21 +56,19 @@ async function generatePDFWithQRCodesAndLabels(data) {
       pdf.addPage(); // Add a new page for each QR code
     }
 
-    const qrCodeWidth = 200;
-    const qrCodeHeight = 200;
+    const qrCodeWidth = 400;
+    const qrCodeHeight = 400;
+    const text = `File No: ${data[i].fileNo} | Total Accounts: ${data[i].totalAccounts}`;
+    const textWidth = pdf.widthOfString(text); // Calculate the width of the text
 
-    const textX = (pdf.page.width - qrCodeWidth) / 2;
-    const textY = (pdf.page.height - qrCodeHeight) / 2;
+    const textX = (pdf.page.width - textWidth) / 2; // Center the text horizontally
+    const textY = (pdf.page.height - qrCodeHeight) / 3 - 20; // Adjust the Y position
 
     // Add a label with file number and total accounts above the QR code
-    pdf.text(
-      `File No: ${data[i].fileNo} | Total Accounts: ${data[i].totalAccounts}`,
-      textX,
-      textY - 20
-    );
+    pdf.text(text, textX, textY);
 
     // Add the QR code image to the PDF
-    pdf.image(data[i].qrCode, textX, textY, {
+    pdf.image(data[i].qrCode, (pdf.page.width - qrCodeWidth) / 2, textY + 20, {
       width: qrCodeWidth,
       height: qrCodeHeight,
     });
