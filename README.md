@@ -31,25 +31,22 @@ npm install
 const directoryPath = './'; // Update this to your directory path no need to update if the excel is in the same directory as the script
 ```
 
-3.  Modify the config object in the script to match your MSSQL database credentials and configuration:
+3. Modify the config object in the script to match your MSSQL database credentials and configuration:
 
-        ```javascript
+   ```javascript
+   const config = {
+     user: 'your_user_name',
+     password: 'your_password',
+     server: 'your_server',
+     database: 'your_database',
+     options: {
+       encrypt: false,
+       enableArithAbort: true,
+     },
+   };
+   ```
 
-    const config = {
-    user: 'your_username',
-    password: 'your_password',
-    server: 'your_server',
-    port: 1433,
-    database: 'gdms_ctnz_another',
-    options: {
-    encrypt: false, // Depending on your server configuration
-    enableArithAbort: true, // Depending on your server configuration
-    },
-    };
-
-        ```
-
-4.  Run the script using the following command:
+4. Run the script using the following command:
 
 ```bash
 node index.js
