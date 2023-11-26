@@ -31,7 +31,7 @@ npm install
 const directoryPath = './'; // Update this to your directory path no need to update if the excel is in the same directory as the script
 ```
 
-3. Modify the config object in the script to match your MSSQL database credentials and configuration:
+3. Modify the configuration file (database.js) to match your MSSQL database credentials and configuration:
 
    ```javascript
    const config = {
@@ -52,15 +52,13 @@ const directoryPath = './'; // Update this to your directory path no need to upd
 node index.js
 ```
 
-## Function Details
+## Functionality Overview
 
-1. `generateQRCodeWithLabel`: Generates a QR code with a label that includes an account range message.
+1. `database.js: Contains functions to handle database connections and queries.
 
-2. `generatePDFWithQRCodesAndLabels`: Compiles an array of QR codes with labels into a PDF document.
+2. `fileHandler.js: Includes functions for file handling, Excel parsing, PDF generation, and QR code creation.
 
-3. `generateAccountRange`: Generates an account range message for the label.
-
-4. `findExcelFileInDirectory`: Searches for an Excel file in the specified directory.
+3. `index.js: The main script that runs the program.
 
 ## Excel File Details
 
