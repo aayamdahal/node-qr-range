@@ -54,11 +54,11 @@ node index.js
 
 ## Functionality Overview
 
-1. `database.js: Contains functions to handle database connections and queries.
+1. `database.js`: Contains functions to handle database connections and queries.
 
-2. `fileHandler.js: Includes functions for file handling, Excel parsing, PDF generation, and QR code creation.
+2. `fileHandler.js`: Includes functions for file handling, Excel parsing, PDF generation, and QR code creation.
 
-3. `index.js: The main script that runs the program.
+3. `index.js`: The main script that runs the program.
 
 ## Excel File Details
 
