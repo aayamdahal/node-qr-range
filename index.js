@@ -1,92 +1,50 @@
-const QRCode = require('qrcode');
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
+const sql = require('mssql');
 const XLSX = require('xlsx');
+const fs = require('fs');
 const path = require('path');
+const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+const QRCode = require('qrcode');
+const util = require('util');
+const writeFileAsync = util.promisify(fs.writeFile);
 
-/**
- * Generate a QR code with a label.
- *
- * @param {string} fileNo - The file number.
- * @param {number} startAccount - The start account number.
- * @param {number} endAccount - The end account number.
- * @param {number} totalAccounts - The total number of accounts in the range.
- * @returns {Promise<object>} An object containing the file number, QR code, and total accounts.
- */
-async function generateQRCodeWithLabel(
-  fileNo,
-  startAccount,
-  endAccount,
-  totalAccounts
-) {
-  // Create the data for the QR code, including an account range message
-  const qrData = `Account Range:\n${generateAccountRange(
-    startAccount,
-    endAccount
-  )}`;
+const config = {
+  user: 'sa',
+  password: '1234',
+  server: 'localhost',
+  port: 1433,
+  database: 'gdms_ctnz_another',
+  options: {
+    encrypt: false, // Depending on your server configuration
+    enableArithAbort: true, // Depending on your server configuration
+  },
+};
 
-  // Generate the QR code and return it as a Data URL
-  const qrCode = await QRCode.toDataURL(qrData, { errorCorrectionLevel: 'H' });
+async function establishDBConnection() {
+  try {
+    const pool = await sql.connect(config);
+    console.log('Connected to MSSQL Database');
 
-  return { fileNo, qrCode, totalAccounts };
-}
+    // Fetch all accounts from the 'documents' table
+    const result = await pool.request().query('SELECT name FROM documents');
+    const accountsFromDB = result.recordset.map((account) => account.name);
 
-/**
- * Generate a PDF containing QR codes with labels.
- *
- * @param {object[]} data - An array of objects, each containing file number, QR code, and total accounts.
- */
-async function generatePDFWithQRCodesAndLabels(data) {
-  // Create a new PDF document
-  const pdf = new PDFDocument({
-    size: 'letter',
-    margin: 50,
-    layout: 'landscape',
-  });
-
-  // Create an output stream for the PDF
-  const output = fs.createWriteStream('qr_codes.pdf');
-
-  // Pipe the PDF document to the output stream
-  pdf.pipe(output);
-
-  // Loop through the data and add QR codes with labels to the PDF
-  for (let i = 0; i < data.length; i++) {
-    if (i > 0) {
-      pdf.addPage(); // Add a new page for each QR code
-    }
-
-    const qrCodeWidth = 400;
-    const qrCodeHeight = 400;
-    const text = `File No: ${data[i].fileNo} | Total Accounts: ${data[i].totalAccounts}`;
-    const textWidth = pdf.widthOfString(text); // Calculate the width of the text
-
-    const textX = (pdf.page.width - textWidth) / 2; // Center the text horizontally
-    const textY = (pdf.page.height - qrCodeHeight) / 3 - 20; // Adjust the Y position
-
-    // Add a label with file number and total accounts above the QR code
-    pdf.text(text, textX, textY);
-
-    // Add the QR code image to the PDF
-    pdf.image(data[i].qrCode, (pdf.page.width - qrCodeWidth) / 2, textY + 20, {
-      width: qrCodeWidth,
-      height: qrCodeHeight,
-    });
+    return accountsFromDB;
+  } catch (err) {
+    console.error('Error connecting to the database:', err);
+    throw err;
   }
-
-  // End the PDF creation
-  pdf.end();
-
-  console.log('PDF with QR codes and labels generated.');
 }
 
-/**
- * Generate an account range message.
- *
- * @param {number} start - The start account number.
- * @param {number} end - The end account number.
- * @returns {string} The account range message.
- */
+function findExcelFileInDirectory(directoryPath) {
+  const files = fs.readdirSync(directoryPath);
+  for (const file of files) {
+    if (file.endsWith('.xlsx')) {
+      return path.join(directoryPath, file);
+    }
+  }
+  return null;
+}
+
 function generateAccountRange(start, end) {
   let accountRange = '';
   for (let account = start; account <= end; account++) {
@@ -95,61 +53,144 @@ function generateAccountRange(start, end) {
   return accountRange;
 }
 
-// Function to find the Excel file in the directory
-function findExcelFileInDirectory(directoryPath) {
-  const files = fs.readdirSync(directoryPath);
-  for (const file of files) {
-    if (file.endsWith('.xlsx')) {
-      return path.join(directoryPath, file);
-    }
+async function writeMissingAccountsToFile(missingAccounts) {
+  const fileName = 'missing_accounts.txt';
+
+  try {
+    fs.writeFileSync(fileName, 'Missing Accounts:\n');
+    missingAccounts.forEach((account) => {
+      fs.appendFileSync(fileName, `${account}\n`);
+    });
+    console.log(`Missing accounts written to ${fileName}`);
+  } catch (err) {
+    console.error('Error writing missing accounts to file:', err);
   }
-  return null; // Return null if no Excel file is found
 }
 
-// Specify the directory where the Excel file is located
-const directoryPath = './'; // You can change this to the desired directory
-
-// Find the Excel file in the directory
+const directoryPath = './';
 const excelFilePath = findExcelFileInDirectory(directoryPath);
 
 if (excelFilePath) {
-  // Read data from the Excel file
-  const workbook = XLSX.readFile(excelFilePath);
-  const sheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[sheetName];
+  establishDBConnection()
+    .then(async (accountsFromDB) => {
+      const workbook = XLSX.readFile(excelFilePath);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const excelData = XLSX.utils.sheet_to_json(worksheet);
 
-  // Convert the Excel data to JSON
-  const excelData = XLSX.utils.sheet_to_json(worksheet);
+      const fileNumbers = new Set(excelData.map((row) => row['FILE NO']));
 
-  // Create an array of promises to generate QR codes with labels
-  const qrCodePromises = [];
+      const missingAccountsByFile = {};
 
-  // Iterate through the Excel data and generate QR codes with labels
-  for (const row of excelData) {
-    const fileNo = row['FILE NO'];
-    const startAccountNumber = row.START;
-    const endAccountNumber = row.END;
+      const pdfDoc = await PDFDocument.create();
 
-    const totalAccounts = endAccountNumber - startAccountNumber + 1;
+      for (const fileNo of fileNumbers) {
+        const fileAccounts = excelData.find((row) => row['FILE NO'] === fileNo);
+        const startAccountNumber = fileAccounts.START;
+        const endAccountNumber = fileAccounts.END;
 
-    qrCodePromises.push(
-      generateQRCodeWithLabel(
-        fileNo,
-        startAccountNumber,
-        endAccountNumber,
-        totalAccounts
-      )
-    );
-  }
+        const accountsRange = generateAccountRange(
+          startAccountNumber,
+          endAccountNumber
+        );
+        const extractedAccountNumbers = accountsRange.match(/\d{14}/g) || [];
 
-  // Wait for all QR codes to be generated, then generate the PDF
-  Promise.all(qrCodePromises)
-    .then((qrCodesWithLabels) => {
-      generatePDFWithQRCodesAndLabels(qrCodesWithLabels);
+        const missingAccounts = extractedAccountNumbers.filter(
+          (account) => !accountsFromDB.includes(account)
+        );
+
+        if (missingAccounts.length > 0) {
+          missingAccountsByFile[fileNo] = missingAccounts;
+
+          const remainingAccounts = extractedAccountNumbers.filter(
+            (account) => !missingAccounts.includes(account)
+          );
+
+          const totalCount = remainingAccounts.length;
+          const remainingAccountsText = remainingAccounts.join('\n');
+          const qrCodeData = await generateQRCode(remainingAccountsText);
+
+          const qrImage = await pdfDoc.embedPng(qrCodeData);
+          const page = pdfDoc.addPage();
+          const { width, height } = page.getSize();
+
+          const scaleFactor = 0.5;
+
+          const qrYOffset = 100; // Adjust this value to move the QR code upwards
+
+          page.drawImage(qrImage, {
+            x: width / 2 - (qrImage.width * scaleFactor) / 2,
+            y: height / 2 - (qrImage.height * scaleFactor) / 2 + qrYOffset, // Adjust this value as needed
+            width: qrImage.width * scaleFactor,
+            height: qrImage.height * scaleFactor,
+          });
+
+          const fontSize = 12;
+          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          const totalCountWidth = font.widthOfTextAtSize(
+            `Total Account Count: ${totalCount}`,
+            fontSize
+          );
+          const fileNoWidth = font.widthOfTextAtSize(
+            `File Number: ${fileNo}`,
+            fontSize
+          );
+
+          const textSpacing = 15; // Adjust this value to create space between the text elements
+
+          page.drawText(`Total Account Count: ${totalCount}`, {
+            x: width / 2 - totalCountWidth / 2,
+            y: height / 2 + qrImage.height * scaleFactor + textSpacing, // Adjust this value as needed
+            size: fontSize,
+          });
+
+          const fileNoY =
+            height / 2 + qrImage.height * scaleFactor + textSpacing * 2; // Adjust this value as needed
+          page.drawText(`File Number: ${fileNo}`, {
+            x: width / 2 - fileNoWidth / 2,
+            y: fileNoY,
+            size: fontSize,
+          });
+        }
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      const pdfFilePath = 'merged_qr_codes.pdf'; // Output PDF file path
+      await writeFileAsync(pdfFilePath, pdfBytes);
+
+      console.log(
+        `PDF with each QR code on a separate page generated: ${pdfFilePath}`
+      );
+
+      let combinedMissingAccounts = '';
+      for (const fileNo in missingAccountsByFile) {
+        combinedMissingAccounts += `Missing accounts for FILE NO ${fileNo}:\n${missingAccountsByFile[
+          fileNo
+        ].join('\n')}\n\n`;
+      }
+
+      const combinedMissingAccountsFilePath = 'combined_missing_accounts.txt';
+      await writeFileAsync(
+        combinedMissingAccountsFilePath,
+        combinedMissingAccounts
+      );
+      console.log(
+        `Combined missing accounts dumped to: ${combinedMissingAccountsFilePath}`
+      );
     })
     .catch((error) => {
-      console.error('Error generating QR codes and PDF:', error);
+      console.error('Error:', error);
     });
 } else {
   console.error('No Excel file found in the directory.');
+}
+
+async function generateQRCode(data) {
+  try {
+    // Generate QR code with the given data
+    const qrCode = await QRCode.toBuffer(data, { errorCorrectionLevel: 'H' });
+    return qrCode;
+  } catch (error) {
+    throw new Error('Error generating QR code: ' + error.message);
+  }
 }
