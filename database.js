@@ -20,7 +20,6 @@ async function establishDBConnection() {
     // Fetch all accounts from the 'documents' table
     const result = await pool.request().query('SELECT name FROM documents');
     const accountsFromDB = result.recordset.map((account) => account.name);
-
     return accountsFromDB;
   } catch (err) {
     console.error('Error connecting to the database:', err);

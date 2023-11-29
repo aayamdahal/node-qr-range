@@ -70,15 +70,14 @@ if (excelFilePath) {
 
             // Set parameters for QR code placement in the PDF
             const scaleFactor = 0.5;
-            const qrYOffset = 50;
 
-            // Draw QR code image on the PDF page
-            page.drawImage(qrImage, {
-              x: width / 2 - (qrImage.width * scaleFactor) / 2,
-              y: height / 2 - (qrImage.height * scaleFactor) / 2 + qrYOffset,
-              width: qrImage.width * scaleFactor,
-              height: qrImage.height * scaleFactor,
-            });
+            // Get the size of the QR code image
+            const qrWidth = qrImage.width * scaleFactor;
+            const qrHeight = qrImage.height * scaleFactor;
+
+            // Calculate the margin for text above the QR code
+            const marginAboveQR = 2 * 12; // Assuming 1 rem = 12px
+            const textSpacing = 15;
 
             // Add text related to account count and file number on the PDF page
             const fontSize = 12;
@@ -92,16 +91,26 @@ if (excelFilePath) {
               fontSize
             );
 
-            const textSpacing = 15;
+            // Calculate the Y coordinate for text above the QR code
+            const textAboveY =
+              height / 2 + qrHeight / 2 + marginAboveQR + textSpacing;
 
+            // Draw QR code image on the PDF page
+            page.drawImage(qrImage, {
+              x: width / 2 - qrWidth / 2,
+              y: height / 2 - qrHeight / 2,
+              width: qrWidth,
+              height: qrHeight,
+            });
+
+            // Draw text above the QR code
             page.drawText(`Total Account Count: ${totalCount}`, {
               x: width / 2 - totalCountWidth / 2,
-              y: height / 2 + qrImage.height * scaleFactor + textSpacing,
+              y: textAboveY,
               size: fontSize,
             });
 
-            const fileNoY =
-              height / 2 + qrImage.height * scaleFactor + textSpacing * 2;
+            const fileNoY = textAboveY + textSpacing;
             page.drawText(`File Number: ${fileNo}`, {
               x: width / 2 - fileNoWidth / 2,
               y: fileNoY,
