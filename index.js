@@ -122,7 +122,7 @@ if (excelFilePath) {
 
       // Save the generated PDF with QR codes
       const pdfBytes = await pdfDoc.save();
-      const pdfFilePath = 'merged_qr_codes.pdf';
+      const pdfFilePath = 'qr_codes.pdf';
       await writeFileAsync(pdfFilePath, pdfBytes);
 
       console.log(
