@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const QRCode = require('qrcode');
 
+// find the excel file in the specified directory
 function findExcelFileInDirectory(directoryPath) {
   const files = fs.readdirSync(directoryPath);
   for (const file of files) {
@@ -12,6 +13,7 @@ function findExcelFileInDirectory(directoryPath) {
   return null;
 }
 
+// generate the range of accounts between start and end account numbers
 function generateAccountRange(start, end) {
   let accountRange = '';
   for (let account = start; account <= end; account++) {
@@ -20,6 +22,7 @@ function generateAccountRange(start, end) {
   return accountRange;
 }
 
+// write missing accounts to a file
 async function writeMissingAccountsToFile(missingAccounts) {
   const fileName = 'missing_accounts.txt';
 
@@ -34,9 +37,9 @@ async function writeMissingAccountsToFile(missingAccounts) {
   }
 }
 
+// generate QR code for the given data
 async function generateQRCode(data) {
   try {
-    // Generate QR code with the given data
     const qrCode = await QRCode.toBuffer(data, { errorCorrectionLevel: 'H' });
     return qrCode;
   } catch (error) {
