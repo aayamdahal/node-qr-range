@@ -51,51 +51,53 @@ if (excelFilePath) {
             (account) => !missingAccounts.includes(account)
           );
 
-          const totalCount = remainingAccounts.length;
-          const remainingAccountsText = remainingAccounts.join('\n');
-          const qrCodeData = await generateQRCode(remainingAccountsText);
+          if (remainingAccounts.length > 0) {
+            const totalCount = remainingAccounts.length;
+            const remainingAccountsText = remainingAccounts.join('\n');
+            const qrCodeData = await generateQRCode(remainingAccountsText);
 
-          const qrImage = await pdfDoc.embedPng(qrCodeData);
-          const page = pdfDoc.addPage();
-          const { width, height } = page.getSize();
+            const qrImage = await pdfDoc.embedPng(qrCodeData);
+            const page = pdfDoc.addPage();
+            const { width, height } = page.getSize();
 
-          const scaleFactor = 0.5;
+            const scaleFactor = 0.5;
 
-          const qrYOffset = 100; // Adjust this value to move the QR code upwards
+            const qrYOffset = 100; // Adjust this value to move the QR code upwards
 
-          page.drawImage(qrImage, {
-            x: width / 2 - (qrImage.width * scaleFactor) / 2,
-            y: height / 2 - (qrImage.height * scaleFactor) / 2 + qrYOffset, // Adjust this value as needed
-            width: qrImage.width * scaleFactor,
-            height: qrImage.height * scaleFactor,
-          });
+            page.drawImage(qrImage, {
+              x: width / 2 - (qrImage.width * scaleFactor) / 2,
+              y: height / 2 - (qrImage.height * scaleFactor) / 2 + qrYOffset,
+              width: qrImage.width * scaleFactor,
+              height: qrImage.height * scaleFactor,
+            });
 
-          const fontSize = 12;
-          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-          const totalCountWidth = font.widthOfTextAtSize(
-            `Total Account Count: ${totalCount}`,
-            fontSize
-          );
-          const fileNoWidth = font.widthOfTextAtSize(
-            `File Number: ${fileNo}`,
-            fontSize
-          );
+            const fontSize = 12;
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const totalCountWidth = font.widthOfTextAtSize(
+              `Total Account Count: ${totalCount}`,
+              fontSize
+            );
+            const fileNoWidth = font.widthOfTextAtSize(
+              `File Number: ${fileNo}`,
+              fontSize
+            );
 
-          const textSpacing = 15; // Adjust this value to create space between the text elements
+            const textSpacing = 15;
 
-          page.drawText(`Total Account Count: ${totalCount}`, {
-            x: width / 2 - totalCountWidth / 2,
-            y: height / 2 + qrImage.height * scaleFactor + textSpacing, // Adjust this value as needed
-            size: fontSize,
-          });
+            page.drawText(`Total Account Count: ${totalCount}`, {
+              x: width / 2 - totalCountWidth / 2,
+              y: height / 2 + qrImage.height * scaleFactor + textSpacing,
+              size: fontSize,
+            });
 
-          const fileNoY =
-            height / 2 + qrImage.height * scaleFactor + textSpacing * 2; // Adjust this value as needed
-          page.drawText(`File Number: ${fileNo}`, {
-            x: width / 2 - fileNoWidth / 2,
-            y: fileNoY,
-            size: fontSize,
-          });
+            const fileNoY =
+              height / 2 + qrImage.height * scaleFactor + textSpacing * 2;
+            page.drawText(`File Number: ${fileNo}`, {
+              x: width / 2 - fileNoWidth / 2,
+              y: fileNoY,
+              size: fontSize,
+            });
+          }
         }
       }
 
