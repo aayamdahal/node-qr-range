@@ -16,6 +16,11 @@ const directoryPath = './';
 const excelFilePath = findExcelFileInDirectory(directoryPath);
 
 if (excelFilePath) {
+  /**
+   * Establishes a connection to the MSSQL database and processes Excel data to generate PDFs
+   * @param {Array<string>} accountsFromDB - Array of account names from the database
+   */
+
   establishDBConnection()
     .then(async (accountsFromDB) => {
       // Read the Excel file and convert it to JSON

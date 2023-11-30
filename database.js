@@ -14,7 +14,10 @@ const config = {
   },
 };
 
-// Function to write logs to a file
+/**
+ * Function to write logs to a file
+ * @param {string} logMessage - The message to be logged
+ */
 function writeToLogFile(logMessage) {
   const logFilePath = path.join(__dirname, 'db_logs.txt');
   const timestamp = new Date().toISOString();
@@ -27,6 +30,10 @@ function writeToLogFile(logMessage) {
   });
 }
 
+/**
+ * Establishes a connection to the MSSQL database
+ * @returns {Promise<Array<string>>} - A promise that resolves to an array of account names from the 'documents' table
+ */
 async function establishDBConnection() {
   try {
     const pool = await sql.connect(config);

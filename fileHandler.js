@@ -3,6 +3,13 @@ const path = require('path');
 const QRCode = require('qrcode');
 
 // find the excel file in the specified directory
+
+/**
+ * Find the Excel file in the specified directory
+ * @param {string} directoryPath - The directory path to search for the Excel file
+ * @returns {string|null} - The path of the Excel file if found, otherwise null
+ */
+
 function findExcelFileInDirectory(directoryPath) {
   const files = fs.readdirSync(directoryPath);
   for (const file of files) {
@@ -14,6 +21,14 @@ function findExcelFileInDirectory(directoryPath) {
 }
 
 // generate the range of accounts between start and end account numbers
+
+/**
+ * Generate the range of accounts between start and end account numbers
+ * @param {number} start - The starting account number
+ * @param {number} end - The ending account number
+ * @returns {string} - A string representing the range of accounts
+ */
+
 function generateAccountRange(start, end) {
   let accountRange = '';
   for (let account = start; account <= end; account++) {
@@ -23,6 +38,12 @@ function generateAccountRange(start, end) {
 }
 
 // write missing accounts to a file
+
+/**
+ * Write missing accounts to a file
+ * @param {string[]} missingAccounts - An array of missing account numbers
+ */
+
 async function writeMissingAccountsToFile(missingAccounts) {
   const fileName = 'missing_accounts.txt';
 
@@ -38,6 +59,13 @@ async function writeMissingAccountsToFile(missingAccounts) {
 }
 
 // generate QR code for the given data
+
+/**
+ * Generate QR code for the given data
+ * @param {string} data - The data to be encoded in the QR code
+ * @returns {Promise<Buffer>} - A promise resolving to the generated QR code buffer
+ */
+
 async function generateQRCode(data) {
   try {
     const qrCode = await QRCode.toBuffer(data, { errorCorrectionLevel: 'H' });
