@@ -2,8 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const QRCode = require('qrcode');
 
-// find the excel file in the specified directory
-
 /**
  * Find the Excel file in the specified directory
  * @param {string} directoryPath - The directory path to search for the Excel file
@@ -20,8 +18,6 @@ function findExcelFileInDirectory(directoryPath) {
   return null;
 }
 
-// generate the range of accounts between start and end account numbers
-
 /**
  * Generate the range of accounts between start and end account numbers
  * @param {number} start - The starting account number
@@ -36,8 +32,6 @@ function generateAccountRange(start, end) {
   }
   return accountRange;
 }
-
-// write missing accounts to a file
 
 /**
  * Write missing accounts to a file
@@ -57,8 +51,6 @@ async function writeMissingAccountsToFile(missingAccounts) {
     console.error('Error writing missing accounts to file:', err);
   }
 }
-
-// generate QR code for the given data
 
 /**
  * Generate QR code for the given data
